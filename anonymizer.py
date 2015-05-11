@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
 from half_partition import half_partition
-from utils.read_data import read_data
+from utils.read_data import read_data, read_tree
 import sys
 import pdb
 # Poulis set k=25, m=2 as default!
@@ -12,9 +12,12 @@ if __name__ == '__main__':
         K = int(sys.argv[1])
     except:
         pass
+    att_trees = read_tree()
+    # read record
+    data = read_data()
     # read record
     data = read_data()
     # remove duplicate items
     print "Begin Half_Partition"
-    result = half_partition(data, K)
+    result = half_partition(att_trees, data, K)
     print "Finish Half_Partition!!"

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
 
-# logic tree
+# generalization hierarchy
 
 
 class GenTree(object):
@@ -26,7 +26,7 @@ class GenTree(object):
         if value is not None:
             self.value = value
         if parent is not None:
-            self.parent = parent.parent[:]
+            self.parent = list(parent.parent)
             self.parent.insert(0, parent)
             parent.child.append(self)
             self.level = parent.level + 1
@@ -34,6 +34,8 @@ class GenTree(object):
                 if isleaf:
                     t.cover[self.value] = self
                     t.support += 1
+        if isleaf:
+            self.cover[self.value] = self
 
     def node(self, value):
         """Search tree with value, return GenTree node.
