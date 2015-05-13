@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+# !/usr/bin/env python
 # coding=utf-8
 
 
@@ -9,7 +9,7 @@ from models.gentree import GenTree
 
 __DEBUG = True
 gl_QI_len = 10
-gl_L = 0
+gl_K = 0
 gl_result = []
 gl_att_trees = []
 gl_QI_range = []
@@ -29,9 +29,9 @@ class Partition:
         """
         initialize with data, width and middle
         """
-        self.member = data[:]
-        self.width = width[:]
-        self.middle = middle[:]
+        self.member = list(data)
+        self.width = list(width)
+        self.middle = list(middle)
         self.allow = [1] * gl_QI_len
 
 
@@ -55,14 +55,8 @@ def check_K_anonymity(partition):
         ltemp = partition.member
     else:
         ltemp = partition
-    for temp in ltemp:
-        stemp = list_to_str(temp[-1])
-        try:
-            sa_dict[stemp] += 1
-        except:
-            sa_dict[stemp] = 1
-            if len(sa_dict) >= gl_L:
-                return True
+    if len(ltemp) >= gl_K:
+        return True
     return False
 
 
@@ -113,7 +107,8 @@ def frequency_set(partition, dim):
 
 
 def find_median(frequency):
-    """find the middle of the partition
+    """
+    find the middle of the partition
     return splitVal
     """
     splitVal = ''
@@ -121,7 +116,7 @@ def find_median(frequency):
     value_list.sort(cmp=cmp_str)
     total = sum(frequency.values())
     middle = total / 2
-    if middle < gl_L:
+    if middle < gl_K:
         print "Error: size of group less than 2*K"
         return ''
     index = 0
@@ -137,115 +132,87 @@ def find_median(frequency):
     return (splitVal, split_index)
 
 
+def balance_partition(sub_partions, leftover):
+    """
+    balance partitions: 
+    Step 1: For partions with less than k records, merge them to leftover partition. 
+    Step 2: If leftover partition has less than k records, then move some records
+    from partitions with more than k records.
+    Step 3: After Step 2, if the leftover partition does not satisfy
+    k-anonymity, then merge a partitions with k records to the leftover partition.
+    Final: Backtrace leftover partition to the partent node.
+    """
+    for sub_p in sub_partions[:]:
+        temp = sub_p.member
+        if len(temp) < gl_K:
+            leftover.member.extend(temp)
+            sub_partions.remove(temp)
+        else:
+            
+    ls = len(leftover.member)
+    if ls >= gl_K:
+        sub_partions.append(leftover)
+    else:
+        remain = gl_K - ls
+
+
+
+
 def anonymize(partition):
     """
-    Main procedure of mondrian_l_diversity.
+    Main procedure of Half_Partition.
     recursively partition groups until not allowable.
     """
     global gl_result
-    if len(partition.member) < 2 * gl_L:
+    if check_splitable(partition) is False:
         gl_result.append(partition)
-        return
-    allow_count = sum(partition.allow)
+    sub_partions = []
     pwidth = partition.width
     pmiddle = partition.middle
-    # pallow = partition.allow
-    for index in range(allow_count):
-        dim = choose_dimension(partition)
-        if dim == -1:
-            print "Error: dim=-1"
-            pdb.set_trace()
-        if isinstance(gl_att_trees[dim], NumRange):
-            # numeric attributes
-            frequency = frequency_set(partition, dim)
-            (splitVal, split_index) = find_median(frequency)
-            if splitVal == '':
-                print "Error: splitVal= null"
-                pdb.set_trace()
-            middle_pos = gl_att_trees[dim].dict[splitVal]
-            lmiddle = pmiddle[:]
-            rmiddle = pmiddle[:]
-            temp = pmiddle[dim].split(',')
-            low = temp[0]
-            high = temp[1]
-            lmiddle[dim] = low + ',' + splitVal
-            rmiddle[dim] = splitVal + ',' + high
-            lhs = []
-            rhs = []
-            for temp in partition.member:
-                pos = gl_att_trees[dim].dict[temp[dim]]
-                if pos <= middle_pos:
-                    # lhs = [low, means]
-                    lhs.append(temp)
-                else:
-                    # rhs = (means, high]
-                    rhs.append(temp)
-            lwidth = pwidth[:]
-            rwidth = pwidth[:]
-            lwidth[dim] = split_index + 1
-            rwidth[dim] = pwidth[dim] - split_index - 1
-            if check_K_anonymity(lhs) is False or check_K_anonymity(rhs) is False:
-                partition.allow[dim] = 0
-                continue
-            # anonymize sub-partition
-            anonymize(Partition(lhs, lwidth, lmiddle))
-            anonymize(Partition(rhs, rwidth, rmiddle))
-            return
-        else:
-            # normal attributes
-            if partition.middle[dim] != '*':
-                splitVal = gl_att_trees[dim][partition.middle[dim]]
-            else:
-                splitVal = gl_att_trees[dim]['*']
-            sub_node = [t for t in splitVal.child]
-            sub_partition = []
-            for i in range(len(sub_node)):
-                sub_partition.append([])
-            for temp in partition.member:
-                qid_value = temp[dim]
-                for i, node in enumerate(sub_node):
-                    try:
-                        node.cover[qid_value]
-                        sub_partition[i].append(temp)
-                        break
-                    except:
-                        continue
-            flag = True
-            for p in sub_partition:
-                if len(p) == 0:
-                    continue
-                if check_K_anonymity(p) is False:
-                    flag = False
-                    break
-            if flag:
-                for i, p in enumerate(sub_partition):
-                    if len(p) == 0:
-                        continue
-                    wtemp = pwidth[:]
-                    mtemp = pmiddle[:]
-                    wtemp[dim] = sub_node[i].support
-                    mtemp[dim] = sub_node[i].value
-                    anonymize(Partition(p, wtemp, mtemp))
-                return
-            else:
-                partition.allow[dim] = 0
-                continue
-    gl_result.append(partition)
+    leftover = Partition([],pwidth, pmiddle)
+    # Choose dim
+    dim = choose_dimension(partition)
+    if dim == -1:
+        print "Error: dim=-1"
+        pdb.set_trace()
+    if isinstance(gl_att_trees[dim], NumRange):
+        # numeric attributes
+        pass
+    else:
+        # cat attributes
+        pass
+    # balance sub-partitions
+    balance_partition(sub_partions, leftover)
+    # recursively partition
+    for sub_p in sub_partions:
+        anonymize(sub_p)
 
 
-def half_partition(att_trees, data, L):
+def check_splitable(partition):
+    """
+    Check if the partition can be further splited while satisfying k-anonymity.
+    """
+    if len(len(partition) < 2* gl_K):
+        return False
+    temp = sum(partition.allow)
+    if temp > 0:
+        return False
+    return True
+
+
+def half_partition(att_trees, data, K):
     """Mondrian for l-diversity.
     This fuction support both numeric values and categoric values.
     For numeric values, each iterator is a mean split.
     For categoric values, each iterator is a split on GH.
     The final result is returned in 2-dimensional list.
     """
-    print "L=%d" % L
-    global gl_L, gl_result, gl_QI_len, gl_att_trees, gl_QI_range
+    print "K=%d" % K
+    global gl_K, gl_result, gl_QI_len, gl_att_trees, gl_QI_range
     gl_att_trees = att_trees
     middle = []
     gl_QI_len = len(data[0]) - 1
-    gl_L = L
+    gl_K = K
     gl_result = []
     result = []
     gl_QI_range = []
