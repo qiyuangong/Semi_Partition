@@ -3,8 +3,7 @@
 from half_partition import half_partition
 from utils.read_data import read_data, read_tree
 import sys
-import pdb
-# Poulis set k=25, m=2 as default!
+# Poulis set k=25 as default!
 
 if __name__ == '__main__':
     K = 10
@@ -13,8 +12,6 @@ if __name__ == '__main__':
     except:
         pass
     att_trees = read_tree()
-    # read record
-    data = read_data()
     # read record
     data = read_data()
     # remove duplicate items

@@ -3,6 +3,7 @@
 
 
 import pdb
+import random
 from models.numrange import NumRange
 from models.gentree import GenTree
 
@@ -134,28 +135,116 @@ def find_median(frequency):
 
 def balance_partition(sub_partions, leftover):
     """
-    balance partitions: 
-    Step 1: For partions with less than k records, merge them to leftover partition. 
+    balance partitions:
+    Step 1: For partions with less than k records, merge them to leftover partition.
     Step 2: If leftover partition has less than k records, then move some records
     from partitions with more than k records.
     Step 3: After Step 2, if the leftover partition does not satisfy
     k-anonymity, then merge a partitions with k records to the leftover partition.
     Final: Backtrace leftover partition to the partent node.
     """
+    extra = 0
+    check_list = []
     for sub_p in sub_partions[:]:
         temp = sub_p.member
         if len(temp) < gl_K:
             leftover.member.extend(temp)
-            sub_partions.remove(temp)
+            sub_partions.remove(sub_p)
         else:
-            
+            extra += len(temp) - gl_K
+            check_list.append(sub_p)
     ls = len(leftover.member)
     if ls >= gl_K:
         sub_partions.append(leftover)
     else:
-        remain = gl_K - ls
+        need_for_leftover = gl_K - ls
+        if need_for_leftover > extra:
+            min_p = 0
+            min_s = len(check_list[0].member)
+            for i, sub_p in enumerate(check_list):
+                if len(sub_p.member) < min_s:
+                    min_s = len(sub_p.member)
+                    min_p = i
+            sub_p = sub_partions[min_p]
+            sub_p.member.extend(leftover.member)
+            return
+        while need_for_leftover > 0:
+            check_list = [t for t in sub_partions if t.member > gl_K]
+            # TODO random pick
+            for sub_p in check_list:
+                if need_for_leftover > 0:
+                    t = sub_p.member.pop(random.randrange(len(sub_p.member)))
+                    leftover.member.append(t)
+                    need_for_leftover -= 1
+        sub_partions.append(leftover)
 
 
+def split_partition(partition, dim):
+    """
+    split partition and distribute records to different sub-partions
+    """
+    sub_partions = []
+    pwidth = partition.width
+    pmiddle = partition.middle
+    if isinstance(gl_att_trees[dim], NumRange):
+        # numeric attributes
+        frequency = frequency_set(partition, dim)
+        (splitVal, split_index) = find_median(frequency)
+        if splitVal == '':
+            print "Error: splitVal= null"
+            pdb.set_trace()
+        middle_pos = gl_att_trees[dim].dict[splitVal]
+        lmiddle = pmiddle[:]
+        rmiddle = pmiddle[:]
+        temp = pmiddle[dim].split(',')
+        low = temp[0]
+        high = temp[1]
+        lmiddle[dim] = low + ',' + splitVal
+        rmiddle[dim] = splitVal + ',' + high
+        lhs = []
+        rhs = []
+        for temp in partition.member:
+            pos = gl_att_trees[dim].dict[temp[dim]]
+            if pos <= middle_pos:
+                # lhs = [low, means]
+                lhs.append(temp)
+            else:
+                # rhs = (means, high]
+                rhs.append(temp)
+        lwidth = pwidth[:]
+        rwidth = pwidth[:]
+        lwidth[dim] = split_index + 1
+        rwidth[dim] = pwidth[dim] - split_index - 1
+        sub_partions.append(Partition(lhs, lwidth, lmiddle))
+        sub_partions.append(Partition(rhs, rwidth, rmiddle))
+    else:
+        # cat attributes
+        if partition.middle[dim] != '*':
+            splitVal = gl_att_trees[dim][partition.middle[dim]]
+        else:
+            splitVal = gl_att_trees[dim]['*']
+        sub_node = [t for t in splitVal.child]
+        sub_groups = []
+        for i in range(len(sub_node)):
+            sub_groups.append([])
+        for temp in partition.member:
+            qid_value = temp[dim]
+            for i, node in enumerate(sub_node):
+                try:
+                    node.cover[qid_value]
+                    sub_groups[i].append(temp)
+                    break
+                except:
+                    continue
+        for i, p in enumerate(sub_groups):
+            if len(p) == 0:
+                continue
+            wtemp = pwidth[:]
+            mtemp = pmiddle[:]
+            wtemp[dim] = sub_node[i].support
+            mtemp[dim] = sub_node[i].value
+            sub_partions.append(Partition(p, wtemp, mtemp))
+    return sub_partions
 
 
 def anonymize(partition):
@@ -166,23 +255,20 @@ def anonymize(partition):
     global gl_result
     if check_splitable(partition) is False:
         gl_result.append(partition)
-    sub_partions = []
-    pwidth = partition.width
-    pmiddle = partition.middle
-    leftover = Partition([],pwidth, pmiddle)
+        return
+    leftover = Partition([], partition.width, partition.middle)
     # Choose dim
     dim = choose_dimension(partition)
     if dim == -1:
         print "Error: dim=-1"
         pdb.set_trace()
-    if isinstance(gl_att_trees[dim], NumRange):
-        # numeric attributes
-        pass
-    else:
-        # cat attributes
-        pass
     # balance sub-partitions
+    sub_partions = split_partition(partition, dim)
     balance_partition(sub_partions, leftover)
+    # split failure
+    if len(sub_partions) <= 1:
+        partition.allow[dim] = 0
+        sub_partions = [partition]
     # recursively partition
     for sub_p in sub_partions:
         anonymize(sub_p)
@@ -192,10 +278,10 @@ def check_splitable(partition):
     """
     Check if the partition can be further splited while satisfying k-anonymity.
     """
-    if len(len(partition) < 2* gl_K):
+    if len(partition.member) < 2 * gl_K:
         return False
     temp = sum(partition.allow)
-    if temp > 0:
+    if temp == 0:
         return False
     return True
 
