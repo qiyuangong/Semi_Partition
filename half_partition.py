@@ -154,29 +154,27 @@ def balance_partition(sub_partions, leftover):
             extra += len(temp) - gl_K
             check_list.append(sub_p)
     ls = len(leftover.member)
-    if ls >= gl_K:
-        sub_partions.append(leftover)
-    else:
+    if ls < gl_K:
         need_for_leftover = gl_K - ls
         if need_for_leftover > extra:
             min_p = 0
-            min_s = len(check_list[0].member)
+            min_size = len(check_list[0].member)
             for i, sub_p in enumerate(check_list):
-                if len(sub_p.member) < min_s:
-                    min_s = len(sub_p.member)
+                if len(sub_p.member) < min_size:
+                    min_size = len(sub_p.member)
                     min_p = i
-            sub_p = sub_partions[min_p]
-            sub_p.member.extend(leftover.member)
-            return
-        while need_for_leftover > 0:
-            check_list = [t for t in sub_partions if t.member > gl_K]
-            # TODO random pick
-            for sub_p in check_list:
-                if need_for_leftover > 0:
-                    t = sub_p.member.pop(random.randrange(len(sub_p.member)))
-                    leftover.member.append(t)
-                    need_for_leftover -= 1
-        sub_partions.append(leftover)
+            sub_p = sub_partions.pop(min_p)
+            leftover.member.extend(sub_p.member)
+        else:
+            while need_for_leftover > 0:
+                check_list = [t for t in sub_partions if t.member > gl_K]
+                # TODO random pick
+                for sub_p in check_list:
+                    if need_for_leftover > 0:
+                        t = sub_p.member.pop(random.randrange(len(sub_p.member)))
+                        leftover.member.append(t)
+                        need_for_leftover -= 1
+    sub_partions.append(leftover)
 
 
 def split_partition(partition, dim):
@@ -327,7 +325,8 @@ def half_partition(att_trees, data, K):
     if __DEBUG:
         print "size of partitions"
         print len(gl_result)
-        # print [len(t.member) for t in gl_result]
+        temp = [len(t.member) for t in gl_result]
+        print sorted(temp)
         print "NCP = %.2f %%" % ncp
         # pdb.set_trace()
     return result
