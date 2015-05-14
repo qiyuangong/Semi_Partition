@@ -47,18 +47,18 @@ def list_to_str(value_list, cmpfun=cmp, sep=';'):
     return sep.join(temp)
 
 
-def check_K_anonymity(partition):
-    """check if partition satisfy l-diversity
-    return True if satisfy, False if not.
-    """
-    sa_dict = {}
-    if isinstance(partition, Partition):
-        ltemp = partition.member
-    else:
-        ltemp = partition
-    if len(ltemp) >= gl_K:
-        return True
-    return False
+# def check_K_anonymity(partition):
+#     """check if partition satisfy l-diversity
+#     return True if satisfy, False if not.
+#     """
+#     sa_dict = {}
+#     if isinstance(partition, Partition):
+#         ltemp = partition.member
+#     else:
+#         ltemp = partition
+#     if len(ltemp) >= gl_K:
+#         return True
+#     return False
 
 
 def cmp_str(element1, element2):
@@ -143,6 +143,9 @@ def balance_partition(sub_partions, leftover):
     k-anonymity, then merge a partitions with k records to the leftover partition.
     Final: Backtrace leftover partition to the partent node.
     """
+    if len(sub_partions) <= 1:
+        # split failure
+        return
     extra = 0
     check_list = []
     for sub_p in sub_partions[:]:
@@ -158,7 +161,10 @@ def balance_partition(sub_partions, leftover):
         need_for_leftover = gl_K - ls
         if need_for_leftover > extra:
             min_p = 0
-            min_size = len(check_list[0].member)
+            try:
+                min_size = len(check_list[0].member)
+            except:
+                pdb.set_trace()
             for i, sub_p in enumerate(check_list):
                 if len(sub_p.member) < min_size:
                     min_size = len(sub_p.member)
@@ -167,7 +173,7 @@ def balance_partition(sub_partions, leftover):
             leftover.member.extend(sub_p.member)
         else:
             while need_for_leftover > 0:
-                check_list = [t for t in sub_partions if t.member > gl_K]
+                check_list = [t for t in sub_partions if len(t.member) > gl_K]
                 # TODO random pick
                 for sub_p in check_list:
                     if need_for_leftover > 0:
@@ -216,7 +222,7 @@ def split_partition(partition, dim):
         sub_partions.append(Partition(lhs, lwidth, lmiddle))
         sub_partions.append(Partition(rhs, rwidth, rmiddle))
     else:
-        # cat attributes
+        # categoric attributes
         if partition.middle[dim] != '*':
             splitVal = gl_att_trees[dim][partition.middle[dim]]
         else:
@@ -225,6 +231,9 @@ def split_partition(partition, dim):
         sub_groups = []
         for i in range(len(sub_node)):
             sub_groups.append([])
+        if len(sub_groups) == 0:
+            # split is not necessary
+            return []
         for temp in partition.member:
             qid_value = temp[dim]
             for i, node in enumerate(sub_node):
@@ -260,10 +269,10 @@ def anonymize(partition):
     if dim == -1:
         print "Error: dim=-1"
         pdb.set_trace()
+    # leftover.allow[dim] = 0
     # balance sub-partitions
     sub_partions = split_partition(partition, dim)
     balance_partition(sub_partions, leftover)
-    # split failure
     if len(sub_partions) <= 1:
         partition.allow[dim] = 0
         sub_partions = [partition]
@@ -328,5 +337,4 @@ def half_partition(att_trees, data, K):
         temp = [len(t.member) for t in gl_result]
         print sorted(temp)
         print "NCP = %.2f %%" % ncp
-        # pdb.set_trace()
     return result
