@@ -156,15 +156,15 @@ def balance_partition(sub_partions, leftover):
         else:
             extra += len(temp) - gl_K
             check_list.append(sub_p)
+    # there is no record to balance
+    if len(leftover.member) == 0:
+        return
     ls = len(leftover.member)
     if ls < gl_K:
         need_for_leftover = gl_K - ls
         if need_for_leftover > extra:
             min_p = 0
-            try:
-                min_size = len(check_list[0].member)
-            except:
-                pdb.set_trace()
+            min_size = len(check_list[0].member)
             for i, sub_p in enumerate(check_list):
                 if len(sub_p.member) < min_size:
                     min_size = len(sub_p.member)
@@ -263,6 +263,8 @@ def anonymize(partition):
     if check_splitable(partition) is False:
         gl_result.append(partition)
         return
+    # leftover contains all records from subPartitons smaller than k
+    # So the GH of leftover is the same as Parent.
     leftover = Partition([], partition.width, partition.middle)
     # Choose dim
     dim = choose_dimension(partition)
@@ -320,14 +322,14 @@ def half_partition(att_trees, data, K):
     anonymize(partition)
     ncp = 0.0
     for p in gl_result:
-        rncp = 0.0
+        r_ncp = 0.0
         for i in range(gl_QI_len):
-            rncp += getNormalizedWidth(p, i)
+            r_ncp += getNormalizedWidth(p, i)
         temp = p.middle
         for i in range(len(p.member)):
             result.append(temp[:])
-        rncp *= len(p.member)
-        ncp += rncp
+        r_ncp *= len(p.member)
+        ncp += r_ncp
     ncp /= gl_QI_len
     ncp /= len(data)
     ncp *= 100
