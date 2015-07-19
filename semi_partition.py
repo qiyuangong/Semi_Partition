@@ -36,17 +36,6 @@ class Partition:
         self.allow = [1] * gl_QI_len
 
 
-def list_to_str(value_list, cmpfun=cmp, sep=';'):
-    """covert sorted str list (sorted by cmpfun) to str
-    value (splited by sep). This fuction is value safe, which means
-    value_list will not be changed.
-    return str list.
-    """
-    temp = value_list[:]
-    temp.sort(cmp=cmpfun)
-    return sep.join(temp)
-
-
 # def check_K_anonymity(partition):
 #     """check if partition satisfy l-diversity
 #     return True if satisfy, False if not.
@@ -295,7 +284,7 @@ def check_splitable(partition):
     return True
 
 
-def half_partition(att_trees, data, K):
+def semi_partition(att_trees, data, K):
     """Mondrian for l-diversity.
     This fuction support both numeric values and categoric values.
     For numeric values, each iterator is a mean split.
