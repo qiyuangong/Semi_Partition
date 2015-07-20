@@ -6,9 +6,10 @@ import pdb
 import random
 from models.numrange import NumRange
 from models.gentree import GenTree
+import time
 
 
-__DEBUG = True
+__DEBUG = False
 gl_QI_len = 10
 gl_K = 0
 gl_result = []
@@ -291,7 +292,6 @@ def semi_partition(att_trees, data, K):
     For categoric values, each iterator is a split on GH.
     The final result is returned in 2-dimensional list.
     """
-    print "K=%d" % K
     global gl_K, gl_result, gl_QI_len, gl_att_trees, gl_QI_range
     gl_att_trees = att_trees
     middle = []
@@ -308,7 +308,9 @@ def semi_partition(att_trees, data, K):
             gl_QI_range.append(gl_att_trees[i]['*'].support)
             middle.append(gl_att_trees[i]['*'].value)
     partition = Partition(data, gl_QI_range[:], middle)
+    start_time = time.time()
     anonymize(partition)
+    rtime = float(time.time() - start_time)
     ncp = 0.0
     for p in gl_result:
         r_ncp = 0.0
@@ -323,9 +325,10 @@ def semi_partition(att_trees, data, K):
     ncp /= len(data)
     ncp *= 100
     if __DEBUG:
+        print "K=%d" % K
         print "size of partitions"
         print len(gl_result)
         temp = [len(t.member) for t in gl_result]
         print sorted(temp)
         print "NCP = %.2f %%" % ncp
-    return result
+    return (result, (ncp, rtime))
