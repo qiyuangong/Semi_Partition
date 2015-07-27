@@ -14,7 +14,7 @@ gl_QI_len = 10
 gl_K = 0
 gl_result = []
 gl_att_trees = []
-gl_QI_range = []
+gl_QI_ranges = []
 
 
 class Partition:
@@ -62,24 +62,24 @@ def getNormalizedWidth(partition, index):
     similar to NCP
     """
     width = partition.width[index]
-    return width * 1.0 / gl_QI_range[index]
+    return width * 1.0 / gl_QI_ranges[index]
 
 
 def choose_dimension(partition):
     """chooss dim with largest normlized Width
     return dim index.
     """
-    max_witdh = -1
+    max_width = -1
     max_dim = -1
     for i in range(gl_QI_len):
         if partition.allow[i] == 0:
             continue
         normWidth = getNormalizedWidth(partition, i)
-        if normWidth > max_witdh:
-            max_witdh = normWidth
+        if normWidth > max_width:
+            max_width = normWidth
             max_dim = i
-    if max_witdh > 1:
-        print "Error: max_witdh > 1"
+    if max_width > 1:
+        print "Error: max_width > 1"
         pdb.set_trace()
     return max_dim
 
@@ -207,6 +207,7 @@ def split_partition(partition, dim):
                 rhs.append(temp)
         lwidth = pwidth[:]
         rwidth = pwidth[:]
+        # TODO need be changed to high and low
         lwidth[dim] = split_index + 1
         rwidth[dim] = pwidth[dim] - split_index - 1
         sub_partions.append(Partition(lhs, lwidth, lmiddle))
@@ -292,22 +293,22 @@ def semi_partition(att_trees, data, K):
     For categoric values, each iterator is a split on GH.
     The final result is returned in 2-dimensional list.
     """
-    global gl_K, gl_result, gl_QI_len, gl_att_trees, gl_QI_range
+    global gl_K, gl_result, gl_QI_len, gl_att_trees, gl_QI_ranges
     gl_att_trees = att_trees
     middle = []
     gl_QI_len = len(data[0]) - 1
     gl_K = K
     gl_result = []
     result = []
-    gl_QI_range = []
+    gl_QI_ranges = []
     for i in range(gl_QI_len):
         if isinstance(gl_att_trees[i], NumRange):
-            gl_QI_range.append(gl_att_trees[i].range)
+            gl_QI_ranges.append(gl_att_trees[i].range)
             middle.append(gl_att_trees[i].value)
         else:
-            gl_QI_range.append(gl_att_trees[i]['*'].support)
+            gl_QI_ranges.append(gl_att_trees[i]['*'].support)
             middle.append(gl_att_trees[i]['*'].value)
-    partition = Partition(data, gl_QI_range[:], middle)
+    partition = Partition(data, gl_QI_ranges[:], middle)
     start_time = time.time()
     anonymize(partition)
     rtime = float(time.time() - start_time)

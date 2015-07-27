@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
 from semi_partition import semi_partition
-from utils.read_data import read_data, read_tree
+from utils.read_informs_data import read_data, read_tree
 import sys, copy, random
 
 
