@@ -286,21 +286,31 @@ def check_splitable(partition):
     return True
 
 
-def semi_partition(att_trees, data, K):
+def init(att_trees, data, K, QI_num=-1):
+    """
+    reset all global variables
+    """
+    global gl_K, gl_result, gl_QI_len, gl_att_trees, gl_QI_ranges
+    gl_att_trees = att_trees
+    if QI_num <= 0:
+        gl_QI_len = len(data[0]) - 1
+    else:
+        gl_QI_len = QI_num
+    gl_K = K
+    gl_result = []
+    gl_QI_ranges = []
+
+
+def semi_partition(att_trees, data, K, QI_num=-1):
     """Mondrian for l-diversity.
     This fuction support both numeric values and categoric values.
     For numeric values, each iterator is a mean split.
     For categoric values, each iterator is a split on GH.
     The final result is returned in 2-dimensional list.
     """
-    global gl_K, gl_result, gl_QI_len, gl_att_trees, gl_QI_ranges
-    gl_att_trees = att_trees
-    middle = []
-    gl_QI_len = len(data[0]) - 1
-    gl_K = K
-    gl_result = []
+    init(att_trees, data, K, QI_num)
     result = []
-    gl_QI_ranges = []
+    middle = []
     for i in range(gl_QI_len):
         if isinstance(gl_att_trees[i], NumRange):
             gl_QI_ranges.append(gl_att_trees[i].range)
