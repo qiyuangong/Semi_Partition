@@ -25,6 +25,7 @@ def get_result_K(att_trees, data):
     data_back = copy.deepcopy(data)
     for K in range(5, 55, 5):
         print '#' * 30
+        print "K=%d" % K
         result, eval_result = semi_partition(att_trees, data, K)
         data = copy.deepcopy(data_back)
         print "NCP %0.2f" % eval_result[0] + "%"
@@ -115,6 +116,8 @@ if __name__ == '__main__':
     elif flag == '':
         get_result_one(att_trees, data)
     else:
-        print "Usage: python anonymizer [k | qi | data | one]"
+        print "Usage: python anonymizer [a | i] [k | qi |data | one]"
+        print "a: adult dataset, 'i': INFORMS ataset"
+        print "k: varying k, qi: varying qi numbers, data: varying size of dataset, one: run only once"
     # anonymized dataset is stored in result
     print "Finish Semi_Partition!!"

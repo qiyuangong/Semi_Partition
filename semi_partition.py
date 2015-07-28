@@ -15,6 +15,7 @@ gl_K = 0
 gl_result = []
 gl_att_trees = []
 gl_QI_ranges = []
+gl_is_cat = []
 
 
 class Partition:
@@ -22,7 +23,8 @@ class Partition:
     """Class for Group, which is used to keep records
     Store tree node in instances.
     self.member: records in group
-    self.width: width of this partition on each domain
+    self.width: width of this partition on each domain. For categoric attribute, it equal
+    the number of leaf node, for numeric attribute, it equal to number range
     self.middle: save the generalization result of this partition
     self.allow: 0 donate that not allow to split, 1 donate can be split
     """
@@ -61,7 +63,12 @@ def getNormalizedWidth(partition, index):
     """return Normalized width of partition
     similar to NCP
     """
-    width = partition.width[index]
+    if gl_is_cat[index] is False:
+        low = partition.width[index][0]
+        high = partition.width[index][1]
+        width = float(gl_att_trees[index].sort_value[high]) - float(gl_att_trees[index].sort_value[low])
+    else:
+        width = partition.width[index]
     return width * 1.0 / gl_QI_ranges[index]
 
 
@@ -208,8 +215,8 @@ def split_partition(partition, dim):
         lwidth = pwidth[:]
         rwidth = pwidth[:]
         # TODO need be changed to high and low
-        lwidth[dim] = split_index + 1
-        rwidth[dim] = pwidth[dim] - split_index - 1
+        lwidth[dim] = (pwidth[dim][0], split_index)
+        rwidth[dim] = (split_index + 1, pwidth[dim][1])
         sub_partions.append(Partition(lhs, lwidth, lmiddle))
         sub_partions.append(Partition(rhs, rwidth, rmiddle))
     else:
@@ -292,6 +299,11 @@ def init(att_trees, data, K, QI_num=-1):
     """
     global gl_K, gl_result, gl_QI_len, gl_att_trees, gl_QI_ranges
     gl_att_trees = att_trees
+    for t in att_trees:
+        if isinstance(t, NumRange):
+            gl_is_cat.append(False)
+        else:
+            gl_is_cat.append(True)
     if QI_num <= 0:
         gl_QI_len = len(data[0]) - 1
     else:
@@ -311,14 +323,17 @@ def semi_partition(att_trees, data, K, QI_num=-1):
     init(att_trees, data, K, QI_num)
     result = []
     middle = []
+    wtemp = []
     for i in range(gl_QI_len):
-        if isinstance(gl_att_trees[i], NumRange):
+        if gl_is_cat[i] is False:
             gl_QI_ranges.append(gl_att_trees[i].range)
+            wtemp.append((0, len(gl_att_trees[i].sort_value) - 1))
             middle.append(gl_att_trees[i].value)
         else:
             gl_QI_ranges.append(gl_att_trees[i]['*'].support)
+            wtemp.append(gl_att_trees[i]['*'].support)
             middle.append(gl_att_trees[i]['*'].value)
-    partition = Partition(data, gl_QI_ranges[:], middle)
+    partition = Partition(data, wtemp, middle)
     start_time = time.time()
     anonymize(partition)
     rtime = float(time.time() - start_time)
