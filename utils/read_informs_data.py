@@ -6,6 +6,7 @@
 # condition att ['DUID', 'DUPERSID', 'ICD9CODX', 'year']
 from models.gentree import GenTree
 from models.numrange import NumRange
+from utils.utility import cmp_str
 import pickle
 import pdb
 
@@ -19,13 +20,6 @@ gl_condition_att = ['DUID', 'DUPERSID', 'ICD9CODX', 'year']
 # DOBMM DOBYY RACEX, EDUCYEAR, incom
 gl_QI_index = [3, 4, 6, 13, 16]
 gl_is_cat = [True, True, True, True, False]
-
-
-def cmp_str(element1, element2):
-    """
-    compare number in str format correctley
-    """
-    return cmp(int(element1), int(element2))
 
 
 def read_tree():

@@ -2,8 +2,8 @@
 # coding=utf-8
 from semi_partition import semi_partition
 from utils.read_adult_data import read_data as read_adult
-from utils.read_informs_data import read_data as read_informs
 from utils.read_adult_data import read_tree as read_adult_tree
+from utils.read_informs_data import read_data as read_informs
 from utils.read_informs_data import read_tree as read_informs_tree
 import sys, copy, random
 
@@ -103,7 +103,7 @@ if __name__ == '__main__':
     print '#' * 30
     if flag == 'k':
         get_result_K(att_trees, data)
-    if flag == 'qi':
+    elif flag == 'qi':
         get_result_QI(att_trees, data)
     elif flag == 'data':
         get_result_dataset(att_trees, data)
@@ -116,7 +116,7 @@ if __name__ == '__main__':
     elif flag == '':
         get_result_one(att_trees, data)
     else:
-        print "Usage: python anonymizer [a | i] [k | qi |data | one]"
+        print "Usage: python anonymizer [a | i] [k | qi | data | one]"
         print "a: adult dataset, 'i': INFORMS ataset"
         print "k: varying k, qi: varying qi numbers, data: varying size of dataset, one: run only once"
     # anonymized dataset is stored in result

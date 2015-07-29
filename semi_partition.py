@@ -6,6 +6,7 @@ import pdb
 import random
 from models.numrange import NumRange
 from models.gentree import GenTree
+from utils.utility import cmp_str
 import time
 
 
@@ -51,12 +52,6 @@ class Partition:
 #     if len(ltemp) >= gl_K:
 #         return True
 #     return False
-
-
-def cmp_str(element1, element2):
-    """compare number in str format correctley
-    """
-    return cmp(int(element1), int(element2))
 
 
 def getNormalizedWidth(partition, index):
@@ -187,7 +182,7 @@ def split_partition(partition, dim):
     sub_partions = []
     pwidth = partition.width
     pmiddle = partition.middle
-    if isinstance(gl_att_trees[dim], NumRange):
+    if gl_is_cat[dim] is False:
         # numeric attributes
         frequency = frequency_set(partition, dim)
         (splitVal, split_index) = find_median(frequency)
@@ -241,6 +236,8 @@ def split_partition(partition, dim):
                     break
                 except:
                     continue
+            else:
+                print "Generalization hierarchy error!"
         for i, p in enumerate(sub_groups):
             if len(p) == 0:
                 continue
@@ -297,7 +294,7 @@ def init(att_trees, data, K, QI_num=-1):
     """
     reset all global variables
     """
-    global gl_K, gl_result, gl_QI_len, gl_att_trees, gl_QI_ranges
+    global gl_K, gl_result, gl_QI_len, gl_att_trees, gl_QI_ranges, gl_is_cat
     gl_att_trees = att_trees
     for t in att_trees:
         if isinstance(t, NumRange):
@@ -344,6 +341,7 @@ def semi_partition(att_trees, data, K, QI_num=-1):
             r_ncp += getNormalizedWidth(p, i)
         temp = p.middle
         for i in range(len(p.member)):
+            # TODO Fix 6,6 bug
             result.append(temp[:])
         r_ncp *= len(p.member)
         ncp += r_ncp
