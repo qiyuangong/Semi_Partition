@@ -40,22 +40,9 @@ class Partition:
         self.allow = [1] * gl_QI_len
 
 
-# def check_K_anonymity(partition):
-#     """check if partition satisfy l-diversity
-#     return True if satisfy, False if not.
-#     """
-#     sa_dict = {}
-#     if isinstance(partition, Partition):
-#         ltemp = partition.member
-#     else:
-#         ltemp = partition
-#     if len(ltemp) >= gl_K:
-#         return True
-#     return False
-
-
 def getNormalizedWidth(partition, index):
-    """return Normalized width of partition
+    """
+    return Normalized width of partition
     similar to NCP
     """
     if gl_is_cat[index] is False:
@@ -68,7 +55,8 @@ def getNormalizedWidth(partition, index):
 
 
 def choose_dimension(partition):
-    """chooss dim with largest normlized Width
+    """
+    chooss dim with largest normlized Width
     return dim index.
     """
     max_width = -1
@@ -83,11 +71,15 @@ def choose_dimension(partition):
     if max_width > 1:
         print "Error: max_width > 1"
         pdb.set_trace()
+    if max_dim == -1:
+        print "cannot find the max dim"
+        pdb.set_trace()
     return max_dim
 
 
 def frequency_set(partition, dim):
-    """get the frequency_set of partition on dim
+    """
+    get the frequency_set of partition on dim
     return dict{key: str values, values: count}
     """
     frequency = {}
@@ -311,7 +303,8 @@ def init(att_trees, data, K, QI_num=-1):
 
 
 def semi_partition(att_trees, data, K, QI_num=-1):
-    """Mondrian for l-diversity.
+    """
+    Mondrian for l-diversity.
     This fuction support both numeric values and categoric values.
     For numeric values, each iterator is a mean split.
     For categoric values, each iterator is a split on GH.
@@ -345,9 +338,13 @@ def semi_partition(att_trees, data, K, QI_num=-1):
             result.append(temp[:])
         r_ncp *= len(p.member)
         ncp += r_ncp
+    # covert to NCP percentage
     ncp /= gl_QI_len
     ncp /= len(data)
     ncp *= 100
+    if len(result) != len(data):
+        print "Losing records during anonymization!!"
+        pdb.set_trace()
     if __DEBUG:
         print "K=%d" % K
         print "size of partitions"

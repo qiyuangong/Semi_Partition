@@ -23,7 +23,7 @@ def get_result_K(att_trees, data):
     change K, whle fixing QD and size of dataset
     """
     data_back = copy.deepcopy(data)
-    for K in range(5, 55, 5):
+    for K in range(5, 105, 5):
         print '#' * 30
         print "K=%d" % K
         result, eval_result = semi_partition(att_trees, data, K)
