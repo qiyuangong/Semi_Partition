@@ -1,3 +1,7 @@
+"""
+main module of Semi_Partition
+"""
+
 # !/usr/bin/env python
 # coding=utf-8
 
@@ -11,12 +15,12 @@ import time
 
 
 __DEBUG = False
-gl_QI_len = 10
-gl_K = 0
-gl_result = []
-gl_att_trees = []
-gl_QI_ranges = []
-gl_is_cat = []
+QI_LEN = 10
+GL_K = 0
+RESULT = []
+ATT_TREES = []
+QI_RANGE = []
+IS_CAT = []
 
 
 class Partition:
@@ -37,7 +41,7 @@ class Partition:
         self.member = list(data)
         self.width = list(width)
         self.middle = list(middle)
-        self.allow = [1] * gl_QI_len
+        self.allow = [1] * QI_LEN
 
 
 def getNormalizedWidth(partition, index):
@@ -45,13 +49,13 @@ def getNormalizedWidth(partition, index):
     return Normalized width of partition
     similar to NCP
     """
-    if gl_is_cat[index] is False:
+    if IS_CAT[index] is False:
         low = partition.width[index][0]
         high = partition.width[index][1]
-        width = float(gl_att_trees[index].sort_value[high]) - float(gl_att_trees[index].sort_value[low])
+        width = float(ATT_TREES[index].sort_value[high]) - float(ATT_TREES[index].sort_value[low])
     else:
         width = partition.width[index]
-    return width * 1.0 / gl_QI_ranges[index]
+    return width * 1.0 / QI_RANGE[index]
 
 
 def choose_dimension(partition):
@@ -61,7 +65,7 @@ def choose_dimension(partition):
     """
     max_width = -1
     max_dim = -1
-    for i in range(gl_QI_len):
+    for i in range(QI_LEN):
         if partition.allow[i] == 0:
             continue
         normWidth = getNormalizedWidth(partition, i)
@@ -101,7 +105,7 @@ def find_median(frequency):
     value_list.sort(cmp=cmp_str)
     total = sum(frequency.values())
     middle = total / 2
-    if middle < gl_K:
+    if middle < GL_K:
         print "Error: size of group less than 2*K"
         return ''
     index = 0
@@ -134,18 +138,18 @@ def balance_partition(sub_partions, leftover):
     check_list = []
     for sub_p in sub_partions[:]:
         temp = sub_p.member
-        if len(temp) < gl_K:
+        if len(temp) < GL_K:
             leftover.member.extend(temp)
             sub_partions.remove(sub_p)
         else:
-            extra += len(temp) - gl_K
+            extra += len(temp) - GL_K
             check_list.append(sub_p)
     # there is no record to balance
     if len(leftover.member) == 0:
         return
     ls = len(leftover.member)
-    if ls < gl_K:
-        need_for_leftover = gl_K - ls
+    if ls < GL_K:
+        need_for_leftover = GL_K - ls
         if need_for_leftover > extra:
             min_p = 0
             min_size = len(check_list[0].member)
@@ -157,7 +161,7 @@ def balance_partition(sub_partions, leftover):
             leftover.member.extend(sub_p.member)
         else:
             while need_for_leftover > 0:
-                check_list = [t for t in sub_partions if len(t.member) > gl_K]
+                check_list = [t for t in sub_partions if len(t.member) > GL_K]
                 # TODO random pick
                 for sub_p in check_list:
                     if need_for_leftover > 0:
@@ -167,6 +171,29 @@ def balance_partition(sub_partions, leftover):
     sub_partions.append(leftover)
 
 
+def split_numeric_value(numeric_value, splitVal):
+    """
+    split numeric value on splitVal
+    return sub ranges
+    """
+    stemp = numeric_value.split(',')
+    if len(stemp) <= 1:
+        return stemp[0], stemp[0]
+    else:
+        low = stemp[0]
+        high = stemp[1]
+        # Fix 2,2 problem
+        if low == splitVal:
+            lvalue = low
+        else:
+            lvalue = low + ',' + splitVal
+        if high == splitVal:
+            rvalue = high
+        else:
+            rvalue = splitVal + ',' + high
+        return lvalue, rvalue
+
+
 def split_partition(partition, dim):
     """
     split partition and distribute records to different sub-partions
@@ -174,25 +201,21 @@ def split_partition(partition, dim):
     sub_partions = []
     pwidth = partition.width
     pmiddle = partition.middle
-    if gl_is_cat[dim] is False:
+    if IS_CAT[dim] is False:
         # numeric attributes
         frequency = frequency_set(partition, dim)
         (splitVal, split_index) = find_median(frequency)
         if splitVal == '':
             print "Error: splitVal= null"
             pdb.set_trace()
-        middle_pos = gl_att_trees[dim].dict[splitVal]
+        middle_pos = ATT_TREES[dim].dict[splitVal]
         lmiddle = pmiddle[:]
         rmiddle = pmiddle[:]
-        temp = pmiddle[dim].split(',')
-        low = temp[0]
-        high = temp[1]
-        lmiddle[dim] = low + ',' + splitVal
-        rmiddle[dim] = splitVal + ',' + high
+        lmiddle[dim], rmiddle[dim] = split_numeric_value(pmiddle[dim], splitVal)
         lhs = []
         rhs = []
         for temp in partition.member:
-            pos = gl_att_trees[dim].dict[temp[dim]]
+            pos = ATT_TREES[dim].dict[temp[dim]]
             if pos <= middle_pos:
                 # lhs = [low, means]
                 lhs.append(temp)
@@ -209,9 +232,9 @@ def split_partition(partition, dim):
     else:
         # categoric attributes
         if partition.middle[dim] != '*':
-            splitVal = gl_att_trees[dim][partition.middle[dim]]
+            splitVal = ATT_TREES[dim][partition.middle[dim]]
         else:
-            splitVal = gl_att_trees[dim]['*']
+            splitVal = ATT_TREES[dim]['*']
         sub_node = [t for t in splitVal.child]
         sub_groups = []
         for i in range(len(sub_node)):
@@ -246,9 +269,9 @@ def anonymize(partition):
     Main procedure of Half_Partition.
     recursively partition groups until not allowable.
     """
-    global gl_result
+    global RESULT
     if check_splitable(partition) is False:
-        gl_result.append(partition)
+        RESULT.append(partition)
         return
     # leftover contains all records from subPartitons smaller than k
     # So the GH of leftover is the same as Parent.
@@ -274,7 +297,7 @@ def check_splitable(partition):
     """
     Check if the partition can be further splited while satisfying k-anonymity.
     """
-    if len(partition.member) < 2 * gl_K:
+    if len(partition.member) < 2 * GL_K:
         return False
     temp = sum(partition.allow)
     if temp == 0:
@@ -286,20 +309,20 @@ def init(att_trees, data, K, QI_num=-1):
     """
     reset all global variables
     """
-    global gl_K, gl_result, gl_QI_len, gl_att_trees, gl_QI_ranges, gl_is_cat
-    gl_att_trees = att_trees
+    global GL_K, RESULT, QI_LEN, ATT_TREES, QI_RANGE, IS_CAT
+    ATT_TREES = att_trees
     for t in att_trees:
         if isinstance(t, NumRange):
-            gl_is_cat.append(False)
+            IS_CAT.append(False)
         else:
-            gl_is_cat.append(True)
+            IS_CAT.append(True)
     if QI_num <= 0:
-        gl_QI_len = len(data[0]) - 1
+        QI_LEN = len(data[0]) - 1
     else:
-        gl_QI_len = QI_num
-    gl_K = K
-    gl_result = []
-    gl_QI_ranges = []
+        QI_LEN = QI_num
+    GL_K = K
+    RESULT = []
+    QI_RANGE = []
 
 
 def semi_partition(att_trees, data, K, QI_num=-1):
@@ -314,23 +337,23 @@ def semi_partition(att_trees, data, K, QI_num=-1):
     result = []
     middle = []
     wtemp = []
-    for i in range(gl_QI_len):
-        if gl_is_cat[i] is False:
-            gl_QI_ranges.append(gl_att_trees[i].range)
-            wtemp.append((0, len(gl_att_trees[i].sort_value) - 1))
-            middle.append(gl_att_trees[i].value)
+    for i in range(QI_LEN):
+        if IS_CAT[i] is False:
+            QI_RANGE.append(ATT_TREES[i].range)
+            wtemp.append((0, len(ATT_TREES[i].sort_value) - 1))
+            middle.append(ATT_TREES[i].value)
         else:
-            gl_QI_ranges.append(gl_att_trees[i]['*'].support)
-            wtemp.append(gl_att_trees[i]['*'].support)
-            middle.append(gl_att_trees[i]['*'].value)
-    partition = Partition(data, wtemp, middle)
+            QI_RANGE.append(ATT_TREES[i]['*'].support)
+            wtemp.append(ATT_TREES[i]['*'].support)
+            middle.append(ATT_TREES[i]['*'].value)
+    whole_partition = Partition(data, wtemp, middle)
     start_time = time.time()
-    anonymize(partition)
+    anonymize(whole_partition)
     rtime = float(time.time() - start_time)
     ncp = 0.0
-    for p in gl_result:
+    for p in RESULT:
         r_ncp = 0.0
-        for i in range(gl_QI_len):
+        for i in range(QI_LEN):
             r_ncp += getNormalizedWidth(p, i)
         temp = p.middle
         for i in range(len(p.member)):
@@ -339,7 +362,7 @@ def semi_partition(att_trees, data, K, QI_num=-1):
         r_ncp *= len(p.member)
         ncp += r_ncp
     # covert to NCP percentage
-    ncp /= gl_QI_len
+    ncp /= QI_LEN
     ncp /= len(data)
     ncp *= 100
     if len(result) != len(data):
@@ -348,8 +371,8 @@ def semi_partition(att_trees, data, K, QI_num=-1):
     if __DEBUG:
         print "K=%d" % K
         print "size of partitions"
-        print len(gl_result)
-        temp = [len(t.member) for t in gl_result]
+        print len(RESULT)
+        temp = [len(t.member) for t in RESULT]
         print sorted(temp)
         print "NCP = %.2f %%" % ncp
     return (result, (ncp, rtime))

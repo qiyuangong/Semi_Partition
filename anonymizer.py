@@ -1,4 +1,8 @@
-#!/usr/bin/env python
+"""
+run semi_partition with given parameters
+"""
+
+# !/usr/bin/env python
 # coding=utf-8
 from semi_partition import semi_partition
 from utils.read_adult_data import read_data as read_adult
@@ -7,13 +11,13 @@ from utils.read_informs_data import read_data as read_informs
 from utils.read_informs_data import read_tree as read_informs_tree
 import sys, copy, random
 
-gl_data_select = 'a'
+DATA_SELECT = 'a'
 
 
 def get_result_one(att_trees, data, K=10):
     "run semi_partition for one time, with k=10"
     print "K=%d" % K
-    result, eval_result = semi_partition(att_trees, data, K)
+    _, eval_result = semi_partition(att_trees, data, K)
     print "NCP %0.2f" % eval_result[0] + "%"
     print "Running time %0.2f" % eval_result[1] + "seconds"
 
@@ -26,7 +30,7 @@ def get_result_K(att_trees, data):
     for K in range(5, 105, 5):
         print '#' * 30
         print "K=%d" % K
-        result, eval_result = semi_partition(att_trees, data, K)
+        _, eval_result = semi_partition(att_trees, data, K)
         data = copy.deepcopy(data_back)
         print "NCP %0.2f" % eval_result[0] + "%"
         print "Running time %0.2f" % eval_result[1] + "seconds"
@@ -74,50 +78,51 @@ def get_result_QI(att_trees, data, K=10):
     for i in reversed(range(1, ls)):
         print '#' * 30
         print "Number of QI=%d" % i
-        result, eval_result = semi_partition(att_trees, data, K, i)
+        _, eval_result = semi_partition(att_trees, data, K, i)
         data = copy.deepcopy(data_back)
         print "NCP %0.2f" % eval_result[0] + "%"
         print "Running time %0.2f" % eval_result[1] + "seconds"
 
 
 if __name__ == '__main__':
-    flag = ''
-    len_argv = len(sys.argv)
+    FLAG = ''
+    LEN_ARGV = len(sys.argv)
     try:
-        gl_data_select = sys.argv[1]
-        flag = sys.argv[2]
+        DATA_SELECT = sys.argv[1]
+        FLAG = sys.argv[2]
     except:
         pass
     K = 10
-    if gl_data_select == 'i':
-        data = read_informs()
-        att_trees = read_informs_tree()
+    if DATA_SELECT == 'i':
+        RAW_DATA = read_informs()
+        ATT_TREES = read_informs_tree()
     else:
-        data = read_adult()
-        att_trees = read_adult_tree()
+        RAW_DATA = read_adult()
+        ATT_TREES = read_adult_tree()
     print '#' * 30
-    if gl_data_select == 'a':
+    if DATA_SELECT == 'a':
         print "Adult data"
     else:
         print "INFORMS data"
     print '#' * 30
-    if flag == 'k':
-        get_result_K(att_trees, data)
-    elif flag == 'qi':
-        get_result_QI(att_trees, data)
-    elif flag == 'data':
-        get_result_dataset(att_trees, data)
-    elif flag == 'one':
-        if len_argv > 3:
+    if FLAG == 'k':
+        get_result_K(ATT_TREES, RAW_DATA)
+    elif FLAG == 'qi':
+        get_result_QI(ATT_TREES, RAW_DATA)
+    elif FLAG == 'data':
+        get_result_dataset(ATT_TREES, RAW_DATA)
+    elif FLAG == 'one':
+        if LEN_ARGV > 3:
             K = int(sys.argv[3])
-            get_result_one(att_trees, data, K)
+            get_result_one(ATT_TREES, RAW_DATA, K)
         else:
-            get_result_one(att_trees, data)
-    elif flag == '':
-        get_result_one(att_trees, data)
+            get_result_one(ATT_TREES, RAW_DATA)
+    elif FLAG == '':
+        get_result_one(ATT_TREES, RAW_DATA)
     else:
         print "Usage: python anonymizer [a | i] [k | qi | data | one]"
         print "a: adult dataset, 'i': INFORMS ataset"
-        print "k: varying k, qi: varying qi numbers, data: varying size of dataset, one: run only once"
+        print "k: varying k, qi: varying qi numbers, data: varying size of dataset, \
+                one: run only once"
     # anonymized dataset is stored in result
     print "Finish Semi_Partition!!"

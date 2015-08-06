@@ -1,4 +1,7 @@
-#!/usr/bin/env python
+"""
+utility functions
+"""
+# !/usr/bin/env python
 # coding=utf-8
 
 

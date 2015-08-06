@@ -2,8 +2,9 @@
 # coding=utf-8
 
 # Read data and read tree fuctions for INFORMS data
-# attributes ['age', 'workcalss', 'final_weight', 'education', 'education_num', 'marital_status', 'occupation',
-# 'relationship', 'race', 'sex', 'capital_gain', 'capital_loss', 'hours_per_week', 'native_country', 'class']
+# attributes ['age', 'workcalss', 'final_weight', 'education', 'education_num',
+# 'marital_status', 'occupation', 'relationship', 'race', 'sex', 'capital_gain',
+# 'capital_loss', 'hours_per_week', 'native_country', 'class']
 # QID ['age', 'workcalss', 'education', 'matrital_status', 'race', 'sex', 'native_country']
 # SA ['occopation']
 from models.gentree import GenTree
@@ -13,15 +14,16 @@ import pickle
 
 import pdb
 
-gl_att_names = ['age', 'workclass', 'final_weight', 'education',
-                'education_num', 'marital_status', 'occupation', 'relationship',
-                'race', 'sex', 'capital_gain', 'capital_loss', 'hours_per_week', 'native_country', 'class']
+ATT_NAMES = ['age', 'workclass', 'final_weight', 'education',
+             'education_num', 'marital_status', 'occupation', 'relationship',
+             'race', 'sex', 'capital_gain', 'capital_loss', 'hours_per_week',
+             'native_country', 'class']
 # 8 attributes are chose as QI attributes
 # age and education levels are treated as numeric attributes
 # only matrial_status and workclass has well defined generalization hierarchies.
 # other categorical attributes only have 2-level generalization hierarchies.
-gl_QI_index = [0, 1, 4, 5, 6, 8, 9, 13]
-gl_is_cat = [False, True, False, True, True, True, True, True]
+QI_INDEX = [0, 1, 4, 5, 6, 8, 9, 13]
+IS_CAT = [False, True, False, True, True, True, True, True]
 gl_SA_index = -1
 
 __DEBUG = False
@@ -31,7 +33,7 @@ def read_data():
     """
     read microda for *.txt and return read data
     """
-    QI_num = len(gl_QI_index)
+    QI_num = len(QI_INDEX)
     data = []
     numeric_dict = []
     for i in range(QI_num):
@@ -50,8 +52,8 @@ def read_data():
         temp = line.split(',')
         ltemp = []
         for i in range(QI_num):
-            index = gl_QI_index[i]
-            if gl_is_cat[i] is False:
+            index = QI_INDEX[i]
+            if IS_CAT[i] is False:
                 try:
                     numeric_dict[i][temp[index]] += 1
                 except:
@@ -61,8 +63,8 @@ def read_data():
         data.append(ltemp)
     # pickle numeric attributes and get NumRange
     for i in range(QI_num):
-        if gl_is_cat[i] is False:
-            static_file = open('data/adult_' + gl_att_names[gl_QI_index[i]] + '_static.pickle', 'wb')
+        if IS_CAT[i] is False:
+            static_file = open('data/adult_' + ATT_NAMES[QI_INDEX[i]] + '_static.pickle', 'wb')
             sort_value = list(numeric_dict[i].keys())
             sort_value.sort(cmp=cmp_str)
             pickle.dump((numeric_dict[i], sort_value), static_file)
@@ -75,10 +77,10 @@ def read_tree():
     """
     att_names = []
     att_trees = []
-    for t in gl_QI_index:
-        att_names.append(gl_att_names[t])
+    for t in QI_INDEX:
+        att_names.append(ATT_NAMES[t])
     for i in range(len(att_names)):
-        if gl_is_cat[i]:
+        if IS_CAT[i]:
             att_trees.append(read_tree_file(att_names[i]))
         else:
             att_trees.append(read_pickle_file(att_names[i]))
