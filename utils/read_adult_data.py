@@ -56,7 +56,7 @@ def read_data():
             if IS_CAT[i] is False:
                 try:
                     numeric_dict[i][temp[index]] += 1
-                except:
+                except KeyError:
                     numeric_dict[i][temp[index]] = 1
             ltemp.append(temp[index])
         ltemp.append(temp[gl_SA_index])

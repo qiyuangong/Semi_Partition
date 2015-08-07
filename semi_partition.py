@@ -90,7 +90,7 @@ def frequency_set(partition, dim):
     for record in partition.member:
         try:
             frequency[record[dim]] += 1
-        except:
+        except KeyError:
             frequency[record[dim]] = 1
     return frequency
 
