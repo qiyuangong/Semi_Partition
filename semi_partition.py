@@ -214,17 +214,25 @@ def split_partition(partition, dim):
         lmiddle[dim], rmiddle[dim] = split_numeric_value(pmiddle[dim], splitVal)
         lhs = []
         rhs = []
+        mid_set = []
         for temp in partition.member:
             pos = ATT_TREES[dim].dict[temp[dim]]
-            if pos <= middle_pos:
+            if pos < middle_pos:
                 # lhs = [low, means]
                 lhs.append(temp)
-            else:
-                # rhs = (means, high]
+            elif pos > middle_pos:
+                # rhs = (mean, high]
                 rhs.append(temp)
+            else:
+                # mid_set keep the means
+                mid_set.append(temp)
+        half_size = len(partition.member) / 2
+        for i in range(half_size - len(lhs)):
+            temp = mid_set.pop()
+            lhs.append(temp)
+        rhs.extend(mid_set)
         lwidth = pwidth[:]
         rwidth = pwidth[:]
-        # TODO need be changed to high and low
         lwidth[dim] = (pwidth[dim][0], split_index)
         rwidth[dim] = (split_index + 1, pwidth[dim][1])
         sub_partions.append(Partition(lhs, lwidth, lmiddle))
@@ -235,6 +243,15 @@ def split_partition(partition, dim):
             splitVal = ATT_TREES[dim][partition.middle[dim]]
         else:
             splitVal = ATT_TREES[dim]['*']
+        if len(splitVal.child) == 0:
+            # all values are the same
+            # try to binary split
+            half_size = len(partition.member) / 2
+            lhs = partition.member[:half_size]
+            rhs = partition.member[half_size:]
+            sub_partions.append(Partition(lhs, pwidth, pmiddle))
+            sub_partions.append(Partition(rhs, pwidth, pmiddle))
+            return []
         sub_node = [t for t in splitVal.child]
         sub_groups = []
         for i in range(len(sub_node)):
