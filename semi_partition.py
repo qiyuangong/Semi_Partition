@@ -23,7 +23,7 @@ QI_RANGE = []
 IS_CAT = []
 
 
-class Partition:
+class Partition(object):
 
     """Class for Group, which is used to keep records
     Store tree node in instances.
@@ -43,8 +43,14 @@ class Partition:
         self.middle = list(middle)
         self.allow = [1] * QI_LEN
 
+    def __len__(self):
+        """
+        return the number of records in partition
+        """
+        return len(self.member)
 
-def getNormalizedWidth(partition, index):
+
+def get_normalized_width(partition, index):
     """
     return Normalized width of partition
     similar to NCP
@@ -68,7 +74,7 @@ def choose_dimension(partition):
     for i in range(QI_LEN):
         if partition.allow[i] == 0:
             continue
-        normWidth = getNormalizedWidth(partition, i)
+        normWidth = get_normalized_width(partition, i)
         if normWidth > max_width:
             max_width = normWidth
             max_dim = i
@@ -95,11 +101,12 @@ def frequency_set(partition, dim):
     return frequency
 
 
-def find_median(frequency):
+def find_median(partition, dim):
     """
     find the middle of the partition
     return splitVal
     """
+    frequency = frequency_set(partition, dim)
     splitVal = ''
     value_list = frequency.keys()
     value_list.sort(cmp=cmp_str)
@@ -121,54 +128,54 @@ def find_median(frequency):
     return (splitVal, split_index)
 
 
-def balance_partition(sub_partions, leftover):
+def balance_partition(sub_partitions, leftover):
     """
     balance partitions:
-    Step 1: For partions with less than k records, merge them to leftover partition.
+    Step 1: For partitions with less than k records, merge them to leftover partition.
     Step 2: If leftover partition has less than k records, then move some records
     from partitions with more than k records.
     Step 3: After Step 2, if the leftover partition does not satisfy
     k-anonymity, then merge a partitions with k records to the leftover partition.
     Final: Backtrace leftover partition to the partent node.
     """
-    if len(sub_partions) <= 1:
+    if len(sub_partitions) <= 1:
         # split failure
         return
     extra = 0
     check_list = []
-    for sub_p in sub_partions[:]:
-        temp = sub_p.member
-        if len(temp) < GL_K:
-            leftover.member.extend(temp)
-            sub_partions.remove(sub_p)
+    for sub_p in sub_partitions[:]:
+        record_set = sub_p.member
+        if len(record_set) < GL_K:
+            leftover.member.extend(record_set)
+            sub_partitions.remove(sub_p)
         else:
-            extra += len(temp) - GL_K
+            extra += len(record_set) - GL_K
             check_list.append(sub_p)
     # there is no record to balance
-    if len(leftover.member) == 0:
+    if len(leftover) == 0:
         return
-    ls = len(leftover.member)
+    ls = len(leftover)
     if ls < GL_K:
         need_for_leftover = GL_K - ls
         if need_for_leftover > extra:
             min_p = 0
-            min_size = len(check_list[0].member)
+            min_size = len(check_list[0])
             for i, sub_p in enumerate(check_list):
-                if len(sub_p.member) < min_size:
-                    min_size = len(sub_p.member)
+                if len(sub_p) < min_size:
+                    min_size = len(sub_p)
                     min_p = i
-            sub_p = sub_partions.pop(min_p)
+            sub_p = sub_partitions.pop(min_p)
             leftover.member.extend(sub_p.member)
         else:
             while need_for_leftover > 0:
-                check_list = [t for t in sub_partions if len(t.member) > GL_K]
+                check_list = [t for t in sub_partitions if len(t) > GL_K]
                 # TODO random pick
                 for sub_p in check_list:
                     if need_for_leftover > 0:
-                        t = sub_p.member.pop(random.randrange(len(sub_p.member)))
+                        t = sub_p.member.pop(random.randrange(len(sub_p)))
                         leftover.member.append(t)
                         need_for_leftover -= 1
-    sub_partions.append(leftover)
+    sub_partitions.append(leftover)
 
 
 def split_numeric_value(numeric_value, splitVal):
@@ -176,12 +183,12 @@ def split_numeric_value(numeric_value, splitVal):
     split numeric value on splitVal
     return sub ranges
     """
-    stemp = numeric_value.split(',')
-    if len(stemp) <= 1:
-        return stemp[0], stemp[0]
+    split_num = numeric_value.split(',')
+    if len(split_num) <= 1:
+        return split_num[0], split_num[0]
     else:
-        low = stemp[0]
-        high = stemp[1]
+        low = split_num[0]
+        high = split_num[1]
         # Fix 2,2 problem
         if low == splitVal:
             lvalue = low
@@ -196,15 +203,14 @@ def split_numeric_value(numeric_value, splitVal):
 
 def split_partition(partition, dim):
     """
-    split partition and distribute records to different sub-partions
+    split partition and distribute records to different sub-partitions
     """
-    sub_partions = []
+    sub_partitions = []
     pwidth = partition.width
     pmiddle = partition.middle
     if IS_CAT[dim] is False:
         # numeric attributes
-        frequency = frequency_set(partition, dim)
-        (splitVal, split_index) = find_median(frequency)
+        (splitVal, split_index) = find_median(partition, dim)
         if splitVal == '':
             print "Error: splitVal= null"
             pdb.set_trace()
@@ -214,29 +220,20 @@ def split_partition(partition, dim):
         lmiddle[dim], rmiddle[dim] = split_numeric_value(pmiddle[dim], splitVal)
         lhs = []
         rhs = []
-        mid_set = []
         for temp in partition.member:
             pos = ATT_TREES[dim].dict[temp[dim]]
-            if pos < middle_pos:
+            if pos <= middle_pos:
                 # lhs = [low, means]
                 lhs.append(temp)
-            elif pos > middle_pos:
+            else:
                 # rhs = (mean, high]
                 rhs.append(temp)
-            else:
-                # mid_set keep the means
-                mid_set.append(temp)
-        half_size = len(partition.member) / 2
-        for i in range(half_size - len(lhs)):
-            temp = mid_set.pop()
-            lhs.append(temp)
-        rhs.extend(mid_set)
         lwidth = pwidth[:]
         rwidth = pwidth[:]
         lwidth[dim] = (pwidth[dim][0], split_index)
         rwidth[dim] = (split_index + 1, pwidth[dim][1])
-        sub_partions.append(Partition(lhs, lwidth, lmiddle))
-        sub_partions.append(Partition(rhs, rwidth, rmiddle))
+        sub_partitions.append(Partition(lhs, lwidth, lmiddle))
+        sub_partitions.append(Partition(rhs, rwidth, rmiddle))
     else:
         # categoric attributes
         if partition.middle[dim] != '*':
@@ -246,11 +243,11 @@ def split_partition(partition, dim):
         if len(splitVal.child) == 0:
             # all values are the same
             # try to binary split
-            half_size = len(partition.member) / 2
+            half_size = len(partition) / 2
             lhs = partition.member[:half_size]
             rhs = partition.member[half_size:]
-            sub_partions.append(Partition(lhs, pwidth, pmiddle))
-            sub_partions.append(Partition(rhs, pwidth, pmiddle))
+            sub_partitions.append(Partition(lhs, pwidth, pmiddle))
+            sub_partitions.append(Partition(rhs, pwidth, pmiddle))
             return []
         sub_node = [t for t in splitVal.child]
         sub_groups = []
@@ -277,8 +274,8 @@ def split_partition(partition, dim):
             mtemp = pmiddle[:]
             wtemp[dim] = sub_node[i].support
             mtemp[dim] = sub_node[i].value
-            sub_partions.append(Partition(p, wtemp, mtemp))
-    return sub_partions
+            sub_partitions.append(Partition(p, wtemp, mtemp))
+    return sub_partitions
 
 
 def anonymize(partition):
@@ -300,13 +297,13 @@ def anonymize(partition):
         pdb.set_trace()
     # leftover.allow[dim] = 0
     # balance sub-partitions
-    sub_partions = split_partition(partition, dim)
-    balance_partition(sub_partions, leftover)
-    if len(sub_partions) <= 1:
+    sub_partitions = split_partition(partition, dim)
+    balance_partition(sub_partitions, leftover)
+    if len(sub_partitions) <= 1:
         partition.allow[dim] = 0
-        sub_partions = [partition]
+        sub_partitions = [partition]
     # recursively partition
-    for sub_p in sub_partions:
+    for sub_p in sub_partitions:
         anonymize(sub_p)
 
 
@@ -314,7 +311,7 @@ def check_splitable(partition):
     """
     Check if the partition can be further splited while satisfying k-anonymity.
     """
-    if len(partition.member) < 2 * GL_K:
+    if len(partition) < 2 * GL_K:
         return False
     temp = sum(partition.allow)
     if temp == 0:
@@ -362,21 +359,21 @@ def semi_partition(att_trees, data, K, QI_num=-1):
         else:
             QI_RANGE.append(ATT_TREES[i]['*'].support)
             wtemp.append(ATT_TREES[i]['*'].support)
-            middle.append(ATT_TREES[i]['*'].value)
+            middle.append('*')
     whole_partition = Partition(data, wtemp, middle)
     start_time = time.time()
     anonymize(whole_partition)
     rtime = float(time.time() - start_time)
     ncp = 0.0
-    for p in RESULT:
+    for partition in RESULT:
         r_ncp = 0.0
         for i in range(QI_LEN):
-            r_ncp += getNormalizedWidth(p, i)
-        temp = p.middle
-        for i in range(len(p.member)):
+            r_ncp += get_normalized_width(partition, i)
+        temp = partition.middle
+        for i in range(len(partition)):
             # TODO Fix 6,6 bug
             result.append(temp[:])
-        r_ncp *= len(p.member)
+        r_ncp *= len(partition)
         ncp += r_ncp
     # covert to NCP percentage
     ncp /= QI_LEN
@@ -389,7 +386,7 @@ def semi_partition(att_trees, data, K, QI_num=-1):
         print "K=%d" % K
         print "size of partitions"
         print len(RESULT)
-        temp = [len(t.member) for t in RESULT]
+        temp = [len(t) for t in RESULT]
         print sorted(temp)
         print "NCP = %.2f %%" % ncp
     return (result, (ncp, rtime))

@@ -22,7 +22,7 @@ def get_result_one(att_trees, data, K=10):
     print "Running time %0.2f" % eval_result[1] + "seconds"
 
 
-def get_result_K(att_trees, data):
+def get_result_k(att_trees, data):
     """
     change K, whle fixing QD and size of dataset
     """
@@ -69,7 +69,7 @@ def get_result_dataset(att_trees, data, K=10, n=10):
         print '#' * 30
 
 
-def get_result_QI(att_trees, data, K=10):
+def get_result_qi(att_trees, data, K=10):
     """
     change nubmber of QI, whle fixing K and size of dataset
     """
@@ -106,9 +106,9 @@ if __name__ == '__main__':
         print "INFORMS data"
     print '#' * 30
     if FLAG == 'k':
-        get_result_K(ATT_TREES, RAW_DATA)
+        get_result_k(ATT_TREES, RAW_DATA)
     elif FLAG == 'qi':
-        get_result_QI(ATT_TREES, RAW_DATA)
+        get_result_qi(ATT_TREES, RAW_DATA)
     elif FLAG == 'data':
         get_result_dataset(ATT_TREES, RAW_DATA)
     elif FLAG == 'one':
