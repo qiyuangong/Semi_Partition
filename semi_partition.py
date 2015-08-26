@@ -272,7 +272,7 @@ def split_partition(partition, dim):
                 continue
             wtemp = pwidth[:]
             mtemp = pmiddle[:]
-            wtemp[dim] = sub_node[i].support
+            wtemp[dim] = len(sub_node[i])
             mtemp[dim] = sub_node[i].value
             sub_partitions.append(Partition(p, wtemp, mtemp))
     return sub_partitions
@@ -357,8 +357,8 @@ def semi_partition(att_trees, data, K, QI_num=-1):
             wtemp.append((0, len(ATT_TREES[i].sort_value) - 1))
             middle.append(ATT_TREES[i].value)
         else:
-            QI_RANGE.append(ATT_TREES[i]['*'].support)
-            wtemp.append(ATT_TREES[i]['*'].support)
+            QI_RANGE.append(len(ATT_TREES[i]['*']))
+            wtemp.append(len(ATT_TREES[i]['*']))
             middle.append('*')
     whole_partition = Partition(data, wtemp, middle)
     start_time = time.time()
