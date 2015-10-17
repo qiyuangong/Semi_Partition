@@ -45,14 +45,15 @@ def get_result_dataset(att_trees, data, K=10, n=10):
     length = len(data_back)
     print "K=%d" % K
     joint = 5000
-    h = length / joint
+    datasets = []
+    check_time = length / joint
     if length % joint == 0:
-        h += 1
-    for i in range(1, h + 1):
-        pos = i * joint
+        check_time -= 1
+    for i in range(check_time):
+        datasets.append(joint * (i + 1))
+    datasets.append(length)
+    for pos in datasets:
         ncp = rtime = 0
-        if pos > length:
-            continue
         print '#' * 30
         print "size of dataset %d" % pos
         for j in range(n):
