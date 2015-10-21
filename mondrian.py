@@ -130,56 +130,6 @@ def find_median(partition, dim):
     return (splitVal, split_index, value_list[0], value_list[-1])
 
 
-def balance_partition(sub_partitions, leftover):
-    """
-    balance partitions:
-    Step 1: For partitions with less than k records, merge them to leftover partition.
-    Step 2: If leftover partition has less than k records, then move some records
-    from partitions with more than k records.
-    Step 3: After Step 2, if the leftover partition does not satisfy
-    k-anonymity, then merge a partitions with k records to the leftover partition.
-    Final: Backtrace leftover partition to the partent node.
-    """
-    if len(sub_partitions) <= 1:
-        # split failure
-        return
-    extra = 0
-    check_list = []
-    for sub_p in sub_partitions[:]:
-        record_set = sub_p.member
-        if len(record_set) < GL_K:
-            leftover.member.extend(record_set)
-            sub_partitions.remove(sub_p)
-        else:
-            extra += len(record_set) - GL_K
-            check_list.append(sub_p)
-    # there is no record to balance
-    if len(leftover) == 0:
-        return
-    ls = len(leftover)
-    if ls < GL_K:
-        need_for_leftover = GL_K - ls
-        if need_for_leftover > extra:
-            min_p = 0
-            min_size = len(check_list[0])
-            for i, sub_p in enumerate(check_list):
-                if len(sub_p) < min_size:
-                    min_size = len(sub_p)
-                    min_p = i
-            sub_p = sub_partitions.pop(min_p)
-            leftover.member.extend(sub_p.member)
-        else:
-            while need_for_leftover > 0:
-                check_list = [t for t in sub_partitions if len(t) > GL_K]
-                # TODO random pick
-                for sub_p in check_list:
-                    if need_for_leftover > 0:
-                        t = sub_p.member.pop(random.randrange(len(sub_p)))
-                        leftover.member.append(t)
-                        need_for_leftover -= 1
-    sub_partitions.append(leftover)
-
-
 def split_numeric_value(numeric_value, splitVal):
     """
     split numeric value on splitVal
@@ -283,21 +233,22 @@ def split_categoric(partition, dim, pwidth, pmiddle):
                 continue
         else:
             print "Generalization hierarchy error!"
-    nonempty_group = [i for i, t in enumerate(sub_groups) if len(t) > 0]
-    if len(nonempty_group) == 1:
-        index = nonempty_group[0]
-        # update middle
-        pmiddle[dim] = sub_node[index].value
-        pwidth[dim] = len(sub_node[index])
-        return []
-    for i, p in enumerate(sub_groups):
-        if len(p) == 0:
+    flag = True
+    for sub_group in sub_groups:
+        if len(sub_group) == 0:
             continue
-        wtemp = pwidth[:]
-        mtemp = pmiddle[:]
-        wtemp[dim] = len(sub_node[i])
-        mtemp[dim] = sub_node[i].value
-        sub_partitions.append(Partition(p, wtemp, mtemp))
+        if len(sub_group) < GL_K:
+            flag = False
+            break
+    if flag:
+        for i, sub_group in enumerate(sub_groups):
+            if len(sub_group) == 0:
+                continue
+            wtemp = pwidth[:]
+            mtemp = pmiddle[:]
+            wtemp[dim] = len(sub_node[i])
+            mtemp[dim] = sub_node[i].value
+            sub_partitions.append(Partition(sub_group, wtemp, mtemp))
     return sub_partitions
 
 
@@ -325,13 +276,8 @@ def anonymize(partition):
         partition.allow[dim] = 0
         anonymize(partition)
     else:
-        balance_partition(sub_partitions, leftover)
-        if len(sub_partitions) == 1:
-            partition.allow[dim] = 0
-            anonymize(partition)
-        else:
-            for sub_p in sub_partitions:
-                anonymize(sub_p)
+        for sub_p in sub_partitions:
+            anonymize(sub_p)
 
 
 def check_splitable(partition):
@@ -364,9 +310,9 @@ def init(att_trees, data, K, QI_num=-1):
     QI_RANGE = []
 
 
-def semi_partition(att_trees, data, K, QI_num=-1):
+def mondrian(att_trees, data, K, QI_num=-1):
     """
-    Semi_Partition for k-anonymity.
+    Mondrian for k-anonymity.
     This fuction support both numeric values and categoric values.
     For numeric values, each iterator is a mean split.
     For categoric values, each iterator is a split on GH.
