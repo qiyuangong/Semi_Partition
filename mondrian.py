@@ -1,5 +1,5 @@
 """
-main module of Semi_Partition
+main module of Mondrian
 """
 
 # !/usr/bin/env python
@@ -127,7 +127,11 @@ def find_median(partition, dim):
             break
     else:
         print "Error: cannot find splitVal"
-    return (splitVal, split_index, value_list[0], value_list[-1])
+    try:
+        nextVal = value_list[split_index + 1]
+    except IndexError:
+        nextVal = splitVal
+    return (splitVal, nextVal, value_list[0], value_list[-1])
 
 
 def split_numeric_value(numeric_value, splitVal):
@@ -153,22 +157,10 @@ def split_numeric_value(numeric_value, splitVal):
         return lvalue, rvalue
 
 
-def split_partition(partition, dim):
-    """
-    split partition and distribute records to different sub-partitions
-    """
-    pwidth = partition.width
-    pmiddle = partition.middle
-    if IS_CAT[dim] is False:
-        return split_numeric(partition, dim, pwidth, pmiddle)
-    else:
-        return split_categoric(partition, dim, pwidth, pmiddle)
-
-
 def split_numeric(partition, dim, pwidth, pmiddle):
     sub_partitions = []
     # numeric attributes
-    (splitVal, split_index, low, high) = find_median(partition, dim)
+    (splitVal, nextVal, low, high) = find_median(partition, dim)
     if splitVal == '':
         # update middle
         if low == '':
@@ -201,8 +193,8 @@ def split_numeric(partition, dim, pwidth, pmiddle):
             rhs.append(temp)
     lwidth = pwidth[:]
     rwidth = pwidth[:]
-    lwidth[dim] = (pwidth[dim][0], split_index)
-    rwidth[dim] = (split_index + 1, pwidth[dim][1])
+    lwidth[dim] = (pwidth[dim][0], middle_pos)
+    rwidth[dim] = (ATT_TREES[dim].dict[nextVal], pwidth[dim][1])
     sub_partitions.append(Partition(lhs, lwidth, lmiddle))
     sub_partitions.append(Partition(rhs, rwidth, rmiddle))
     return sub_partitions
@@ -250,6 +242,18 @@ def split_categoric(partition, dim, pwidth, pmiddle):
             mtemp[dim] = sub_node[i].value
             sub_partitions.append(Partition(sub_group, wtemp, mtemp))
     return sub_partitions
+
+
+def split_partition(partition, dim):
+    """
+    split partition and distribute records to different sub-partitions
+    """
+    pwidth = partition.width
+    pmiddle = partition.middle
+    if IS_CAT[dim] is False:
+        return split_numeric(partition, dim, pwidth, pmiddle)
+    else:
+        return split_categoric(partition, dim, pwidth, pmiddle)
 
 
 def anonymize(partition):
