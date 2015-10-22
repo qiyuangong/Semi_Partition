@@ -14,7 +14,7 @@ from utils.utility import cmp_str
 from mondrian import Partition
 from mondrian import get_normalized_width
 from mondrian import check_splitable
-from mondrian import split_numeric
+from mondrian import split_numeric_value
 from mondrian import choose_dimension
 import time
 
@@ -26,9 +26,13 @@ RESULT = []
 ATT_TREES = []
 QI_RANGE = []
 IS_CAT = []
+# TODO Relax numeric partition
 
 
 def split_categoric(partition, dim, pwidth, pmiddle):
+    """
+    split categorical attribute using generalization hierarchy
+    """
     sub_partitions = []
     # categoric attributes
     if partition.middle[dim] != '*':
@@ -53,13 +57,6 @@ def split_categoric(partition, dim, pwidth, pmiddle):
                 continue
         else:
             print "Generalization hierarchy error!"
-    nonempty_group = [i for i, t in enumerate(sub_groups) if len(t) > 0]
-    if len(nonempty_group) == 1:
-        index = nonempty_group[0]
-        # update middle
-        pmiddle[dim] = sub_node[index].value
-        pwidth[dim] = len(sub_node[index])
-        return []
     for i, p in enumerate(sub_groups):
         if len(p) == 0:
             continue

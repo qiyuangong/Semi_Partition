@@ -113,10 +113,7 @@ def find_median(partition, dim):
     total = sum(frequency.values())
     middle = total / 2
     if middle < GL_K or len(value_list) <= 1:
-        try:
-            return ('', '', value_list[0], value_list[-1])
-        except IndexError:
-            return ('', '', '', '')
+        return ('', '', value_list[0], value_list[-1])
     index = 0
     split_index = 0
     for i, t in enumerate(value_list):
@@ -158,22 +155,21 @@ def split_numeric_value(numeric_value, splitVal):
 
 
 def split_numeric(partition, dim, pwidth, pmiddle):
+    """
+    strict split numeric attribute by finding a median,
+    lhs = [low, means], rhs = (mean, high]
+    """
     sub_partitions = []
     # numeric attributes
     (splitVal, nextVal, low, high) = find_median(partition, dim)
-    if low == '':
-        pmiddle[dim] = '*'
-        pwidth = (0, 0)
-        partition.is_missing[dim] = True
+    p_low = ATT_TREES[dim].dict[low]
+    p_high = ATT_TREES[dim].dict[high]
+    # update middle
+    if low == high:
+        pmiddle[dim] = low
     else:
-        p_low = ATT_TREES[dim].dict[low]
-        p_high = ATT_TREES[dim].dict[high]
-        # update middle
-        if low == high:
-            pmiddle[dim] = low
-        else:
-            pmiddle[dim] = low + ',' + high
-        pwidth[dim] = (p_low, p_high)
+        pmiddle[dim] = low + ',' + high
+    pwidth[dim] = (p_low, p_high)
     if splitVal == '' or splitVal == nextVal:
         # update middle
         return []
@@ -201,6 +197,9 @@ def split_numeric(partition, dim, pwidth, pmiddle):
 
 
 def split_categoric(partition, dim, pwidth, pmiddle):
+    """
+    split categorical attribute using generalization hierarchy
+    """
     sub_partitions = []
     # categoric attributes
     splitVal = ATT_TREES[dim][partition.middle[dim]]
@@ -223,21 +222,13 @@ def split_categoric(partition, dim, pwidth, pmiddle):
         else:
             print "Generalization hierarchy error!"
     flag = True
-    nonempty_group = []
     for index, sub_group in enumerate(sub_groups):
         if len(sub_group) == 0:
             continue
-        nonempty_group.append(index)
         if len(sub_group) < GL_K:
             flag = False
             break
     if flag:
-        if len(nonempty_group) == 1:
-            index = nonempty_group[0]
-            # update middle
-            pmiddle[dim] = sub_node[index].value
-            pwidth[dim] = len(sub_node[index])
-            return []
         for i, sub_group in enumerate(sub_groups):
             if len(sub_group) == 0:
                 continue
@@ -278,7 +269,7 @@ def anonymize(partition):
         print "Error: dim=-1"
         pdb.set_trace()
     sub_partitions = split_partition(partition, dim)
-    if len(sub_partitions) <= 1:
+    if len(sub_partitions) == 0:
         partition.allow[dim] = 0
         anonymize(partition)
     else:
