@@ -124,7 +124,6 @@ def balance_partition(sub_partitions, leftover):
         else:
             while need_for_leftover > 0:
                 check_list = [t for t in sub_partitions if len(t) > GL_K]
-                # TODO random pick
                 for sub_p in check_list:
                     if need_for_leftover > 0:
                         t = sub_p.member.pop(random.randrange(len(sub_p)))
@@ -156,13 +155,14 @@ def anonymize(partition):
         partition.allow[dim] = 0
         anonymize(partition)
     else:
-        balance_partition(sub_partitions, leftover)
-        if len(sub_partitions) == 1:
-            partition.allow[dim] = 0
-            anonymize(partition)
-        else:
-            for sub_p in sub_partitions:
-                anonymize(sub_p)
+        if len(sub_partitions) > 1:
+            balance_partition(sub_partitions, leftover)
+            if len(sub_partitions) == 1:
+                partition.allow[dim] = 0
+                anonymize(partition)
+                return
+        for sub_p in sub_partitions:
+            anonymize(sub_p)
 
 
 def init(att_trees, data, K, QI_num=-1):
