@@ -138,7 +138,6 @@ def anonymize(partition):
     Main procedure of Half_Partition.
     recursively partition groups until not allowable.
     """
-    global RESULT
     if check_splitable(partition) is False:
         RESULT.append(partition)
         return
