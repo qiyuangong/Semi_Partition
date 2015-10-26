@@ -48,7 +48,7 @@ class functionTest(unittest.TestCase):
         result, eval_r = mondrian(ATT_TREE, data, 2)
         # print result
         # print eval_r
-        self.assertTrue(abs(eval_r[0] - 200.0 / 72) < 0.05)
+        self.assertTrue(abs(eval_r[0] - 100.0 / 36) < 0.05)
 
     def test2_mondrian(self):
         init()
@@ -78,7 +78,7 @@ class functionTest(unittest.TestCase):
         result, eval_r = semi_partition(ATT_TREE, data, 2)
         # print result
         # print eval_r
-        self.assertTrue(abs(eval_r[0] - 200.0 / 72) < 0.05)
+        self.assertTrue(abs(eval_r[0] - 100.0 / 36) < 0.05)
 
     def test2_semi_partition_balance(self):
         init()

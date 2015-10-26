@@ -13,8 +13,9 @@ from models.gentree import GenTree
 from utils.utility import cmp_str
 from mondrian import Partition
 from mondrian import get_normalized_width
+from mondrian import split_numerical
 from mondrian import check_splitable
-from mondrian import split_numeric_value
+from mondrian import split_numerical_value
 from mondrian import choose_dimension
 import time
 
@@ -29,16 +30,13 @@ IS_CAT = []
 # TODO Relax numeric partition
 
 
-def split_categoric(partition, dim, pwidth, pmiddle):
+def split_categorical(partition, dim, pwidth, pmiddle):
     """
     split categorical attribute using generalization hierarchy
     """
     sub_partitions = []
     # categoric attributes
-    if partition.middle[dim] != '*':
-        splitVal = ATT_TREES[dim][partition.middle[dim]]
-    else:
-        splitVal = ATT_TREES[dim]['*']
+    splitVal = ATT_TREES[dim][partition.middle[dim]]
     sub_node = [t for t in splitVal.child]
     sub_groups = []
     for i in range(len(sub_node)):
@@ -75,9 +73,9 @@ def split_partition(partition, dim):
     pwidth = partition.width
     pmiddle = partition.middle
     if IS_CAT[dim] is False:
-        return split_numeric(partition, dim, pwidth, pmiddle)
+        return split_numerical(partition, dim, pwidth, pmiddle)
     else:
-        return split_categoric(partition, dim, pwidth, pmiddle)
+        return split_categorical(partition, dim, pwidth, pmiddle)
 
 
 def balance_partition(sub_partitions, leftover):
