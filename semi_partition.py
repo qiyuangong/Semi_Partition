@@ -11,12 +11,6 @@ import random
 from models.numrange import NumRange
 from models.gentree import GenTree
 from utils.utility import cmp_str
-from mondrian import Partition
-from mondrian import get_normalized_width
-from mondrian import split_numerical
-from mondrian import check_splitable
-from mondrian import split_numerical_value
-from mondrian import choose_dimension
 import time
 
 
@@ -27,7 +21,179 @@ RESULT = []
 ATT_TREES = []
 QI_RANGE = []
 IS_CAT = []
-# TODO Relax numeric partition
+
+
+class Partition(object):
+
+    """Class for Group, which is used to keep records
+    Store tree node in instances.
+    self.member: records in group
+    self.width: width of this partition on each domain. For categoric attribute, it equal
+    the number of leaf node, for numeric attribute, it equal to number range
+    self.middle: save the generalization result of this partition
+    self.allow: 0 donate that not allow to split, 1 donate can be split
+    """
+
+    def __init__(self, data, width, middle):
+        """
+        initialize with data, width and middle
+        """
+        self.member = list(data)
+        self.width = list(width)
+        self.middle = list(middle)
+        self.allow = [1] * QI_LEN
+
+    def __len__(self):
+        """
+        return the number of records in partition
+        """
+        return len(self.member)
+
+
+def get_normalized_width(partition, index):
+    """
+    return Normalized width of partition
+    similar to NCP
+    """
+    if IS_CAT[index] is False:
+        low = partition.width[index][0]
+        high = partition.width[index][1]
+        width = float(ATT_TREES[index].sort_value[high]) - float(ATT_TREES[index].sort_value[low])
+    else:
+        width = partition.width[index]
+    return width * 1.0 / QI_RANGE[index]
+
+
+def choose_dimension(partition):
+    """
+    chooss dim with largest normlized Width
+    return dim index.
+    """
+    max_width = -1
+    max_dim = -1
+    for i in range(QI_LEN):
+        if partition.allow[i] == 0:
+            continue
+        normWidth = get_normalized_width(partition, i)
+        if normWidth > max_width:
+            max_width = normWidth
+            max_dim = i
+    if max_width > 1:
+        print "Error: max_width > 1"
+        pdb.set_trace()
+    if max_dim == -1:
+        print "cannot find the max dim"
+        pdb.set_trace()
+    return max_dim
+
+
+def frequency_set(partition, dim):
+    """
+    get the frequency_set of partition on dim
+    return dict{key: str values, values: count}
+    """
+    frequency = {}
+    for record in partition.member:
+        try:
+            frequency[record[dim]] += 1
+        except KeyError:
+            frequency[record[dim]] = 1
+    return frequency
+
+
+def find_median(partition, dim):
+    """
+    find the middle of the partition
+    return splitVal
+    """
+    frequency = frequency_set(partition, dim)
+    splitVal = ''
+    value_list = frequency.keys()
+    value_list.sort(cmp=cmp_str)
+    total = sum(frequency.values())
+    middle = total / 2
+    if middle < GL_K or len(value_list) <= 1:
+        return ('', '', value_list[0], value_list[-1])
+    index = 0
+    split_index = 0
+    for i, t in enumerate(value_list):
+        index += frequency[t]
+        if index >= middle:
+            splitVal = t
+            split_index = i
+            break
+    else:
+        print "Error: cannot find splitVal"
+    try:
+        nextVal = value_list[split_index + 1]
+    except IndexError:
+        nextVal = splitVal
+    return (splitVal, nextVal, value_list[0], value_list[-1])
+
+
+def split_numerical_value(numeric_value, splitVal):
+    """
+    split numeric value on splitVal
+    return sub ranges
+    """
+    split_num = numeric_value.split(',')
+    if len(split_num) <= 1:
+        return split_num[0], split_num[0]
+    else:
+        low = split_num[0]
+        high = split_num[1]
+        # Fix 2,2 problem
+        if low == splitVal:
+            lvalue = low
+        else:
+            lvalue = low + ',' + splitVal
+        if high == splitVal:
+            rvalue = high
+        else:
+            rvalue = splitVal + ',' + high
+        return lvalue, rvalue
+
+
+def split_numerical(partition, dim, pwidth, pmiddle):
+    """
+    strict split numeric attribute by finding a median,
+    lhs = [low, means], rhs = (mean, high]
+    """
+    sub_partitions = []
+    # numeric attributes
+    (splitVal, nextVal, low, high) = find_median(partition, dim)
+    p_low = ATT_TREES[dim].dict[low]
+    p_high = ATT_TREES[dim].dict[high]
+    # update middle
+    if low == high:
+        pmiddle[dim] = low
+    else:
+        pmiddle[dim] = low + ',' + high
+    pwidth[dim] = (p_low, p_high)
+    if splitVal == '' or splitVal == nextVal:
+        # update middle
+        return []
+    middle_pos = ATT_TREES[dim].dict[splitVal]
+    lmiddle = pmiddle[:]
+    rmiddle = pmiddle[:]
+    lmiddle[dim], rmiddle[dim] = split_numerical_value(pmiddle[dim], splitVal)
+    lhs = []
+    rhs = []
+    for temp in partition.member:
+        pos = ATT_TREES[dim].dict[temp[dim]]
+        if pos <= middle_pos:
+            # lhs = [low, means]
+            lhs.append(temp)
+        else:
+            # rhs = (mean, high]
+            rhs.append(temp)
+    lwidth = pwidth[:]
+    rwidth = pwidth[:]
+    lwidth[dim] = (pwidth[dim][0], middle_pos)
+    rwidth[dim] = (ATT_TREES[dim].dict[nextVal], pwidth[dim][1])
+    sub_partitions.append(Partition(lhs, lwidth, lmiddle))
+    sub_partitions.append(Partition(rhs, rwidth, rmiddle))
+    return sub_partitions
 
 
 def split_categorical(partition, dim, pwidth, pmiddle):
@@ -158,6 +324,16 @@ def anonymize(partition):
                 return
         for sub_p in sub_partitions:
             anonymize(sub_p)
+
+
+def check_splitable(partition):
+    """
+    Check if the partition can be further splited while satisfying k-anonymity.
+    """
+    temp = sum(partition.allow)
+    if temp == 0:
+        return False
+    return True
 
 
 def init(att_trees, data, K, QI_num=-1):
